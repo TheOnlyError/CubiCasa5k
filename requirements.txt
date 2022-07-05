@@ -1,6 +1,5 @@
-matplotlib==3.0.3
 Pillow==5.4.1
-torch==1.0.0
-torchfile==0.1.0
-torchnet==0.0.4
-torchvision==0.2.1
+torch==1.10.0
+svgpathtools
+lmdb
+shapely

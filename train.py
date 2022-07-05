@@ -52,9 +52,10 @@ def train(args, log_dir, writer, logger):
     # Setup Dataloader
     writer.add_text('parameters', str(vars(args)))
     logging.info('Loading data...')
-    train_set = FloorplanSVG(args.data_path, 'train.txt', format='lmdb',
+    dataset = 'r3d_augment'
+    train_set = FloorplanSVG('', dataset + '_train.txt', format='txt',
                              augmentations=aug)
-    val_set = FloorplanSVG(args.data_path, 'val.txt', format='lmdb',
+    val_set = FloorplanSVG('', dataset + '_val.txt', format='txt',
                            augmentations=DictToTensor())
 
     if args.debug:
@@ -364,11 +365,11 @@ if __name__ == '__main__':
                         help='Architecture to use.')
     parser.add_argument('--optimizer', nargs='?', type=str, default='adam-patience-previous-best',
                         help='Optimizer to use [\'adam, sgd\']')
-    parser.add_argument('--data-path', nargs='?', type=str, default='data/cubicasa5k/',
+    parser.add_argument('--data-path', nargs='?', type=str, default='',
                         help='Path to data directory')
-    parser.add_argument('--n-classes', nargs='?', type=int, default=44,
+    parser.add_argument('--n-classes', nargs='?', type=int, default=3, # 44
                         help='# of the epochs')
-    parser.add_argument('--n-epoch', nargs='?', type=int, default=1000,
+    parser.add_argument('--n-epoch', nargs='?', type=int, default=50,
                         help='# of the epochs')
     parser.add_argument('--batch-size', nargs='?', type=int, default=26,
                         help='Batch Size')

@@ -30,9 +30,9 @@ class FloorplanSVG(Dataset):
             self.get_data = self.get_lmdb
             self.is_transform = False
 
-        self.data_folder = data_folder
+        # self.data_folder = data_folder
         # Load txt file to list
-        self.folders = genfromtxt(data_folder + data_file, dtype='str')
+        self.folders = open(data_file, 'r').read().splitlines()
 
     def __len__(self):
         """__len__"""
@@ -43,23 +43,30 @@ class FloorplanSVG(Dataset):
 
         if self.augmentations is not None:
             sample = self.augmentations(sample)
-            
+
         if self.is_transform:
             sample = self.transform(sample)
 
         return sample
 
     def get_txt(self, index):
-        fplan = cv2.imread(self.data_folder + self.folders[index] + self.image_file_name)
+        files = self.folders[index].split('\t')
+        fplan = cv2.imread(files[0])
         fplan = cv2.cvtColor(fplan, cv2.COLOR_BGR2RGB)  # correct color channels
         height, width, nchannel = fplan.shape
         fplan = np.moveaxis(fplan, -1, 0)
 
-        # Getting labels for segmentation and heatmaps
-        house = House(self.data_folder + self.folders[index] + self.svg_file_name, height, width)
-        # Combining them to one numpy tensor
-        label = torch.tensor(house.get_segmentation_tensor().astype(np.float32))
-        heatmaps = house.get_heatmap_dict()
+        newLabel = True
+        if newLabel:
+            label = cv2.imread(files[1])
+            label = np.moveaxis(label, -1, 0)
+            label = torch.tensor(label)
+        else:
+            # Getting labels for segmentation and heatmaps
+            house = House(self.data_folder + self.folders[index] + self.svg_file_name, height, width)
+            # Combining them to one numpy tensor
+            label = torch.tensor(house.get_segmentation_tensor().astype(np.float32))
+            heatmaps = house.get_heatmap_dict()
         coef_width = 1
         if self.original_size:
             fplan = cv2.imread(self.data_folder + self.folders[index] + self.org_image_file_name)
@@ -74,13 +81,15 @@ class FloorplanSVG(Dataset):
 
             coef_height = float(height_org) / float(height)
             coef_width = float(width_org) / float(width)
-            for key, value in heatmaps.items():
-                heatmaps[key] = [(int(round(x*coef_width)), int(round(y*coef_height))) for x, y in value]
+
+            if not newLabel:
+                for key, value in heatmaps.items():
+                    heatmaps[key] = [(int(round(x * coef_width)), int(round(y * coef_height))) for x, y in value]
 
         img = torch.tensor(fplan.astype(np.float32))
 
         sample = {'image': img, 'label': label, 'folder': self.folders[index],
-                  'heatmaps': heatmaps, 'scale': coef_width}
+                  'heatmaps': [], 'scale': coef_height}
 
         return sample
 
@@ -93,6 +102,9 @@ class FloorplanSVG(Dataset):
         return sample
 
     def transform(self, sample):
+        if sample is None:
+            return []
+
         fplan = sample['image']
         # Normalization values to range -1 and 1
         fplan = 2 * (fplan / 255.0) - 1
